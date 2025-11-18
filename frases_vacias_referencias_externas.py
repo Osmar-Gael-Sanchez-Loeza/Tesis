@@ -1,4 +1,7 @@
-def frases_vacias_referencias_externas(content):
+from limpiar_definiciones import sustraer
+import re
+
+def frases_vacias_referencias_externas(content, titulo):
     # Comparaciones directas y enlaces de sinonimia
     content = sustraer(rf'( +|\n *|^ *)((()términos (?i:{re.escape(titulo)}) y (?i:{re.escape(titulo)}) son))(?=([ \n]|$))', rf'# {titulo} son', content)
     content = sustraer(rf'(; +|\. +|\n *|^ *)((()(?i:{re.escape(titulo)})( y (?i:{re.escape(titulo)}))?\.))(?=([ \n]|$))', rf'#', content)
