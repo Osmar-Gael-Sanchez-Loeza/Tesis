@@ -231,6 +231,121 @@ def quitar_acentos(texto):
             texto = texto[:k] + 'u' + texto[k+1:]
     return texto
 
+def frases_vacias_referencias_externas(content):
+    # Comparaciones directas y enlaces de sinonimia
+    content = sustraer(rf'( +|\n *|^ *)((()términos (?i:{re.escape(titulo)}) y (?i:{re.escape(titulo)}) son))(?=([ \n]|$))', rf'# {titulo} son', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(?i:{re.escape(titulo)})( y (?i:{re.escape(titulo)}))?\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Ver (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Término similar a (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Coloquial|Desuso):? igual a (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Su nombre común es (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+
+    # Relaciones de pertenencia o definición relativa
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()De(l| l(a|os)) (?i:{re.escape(titulo)})s?( \(?o (?i:{re.escape(titulo)})\)?,?)? o relacionado con (él|ell[oa]s?)\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Relativo a la (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()El (?i:{re.escape(titulo)}) es el (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+
+    # Punteros de confusión o contraposición
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(que )?[Nn]o debe confundirse con[^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Generalmente por contraposición a:? [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Se usa con incidencia de manera laxo como si fuera sinónimo de: (?i:{re.escape(titulo)})(, la)?\.))(?=([ \n]|$))', rf'#', content)
+
+    # Listados de denominaciones alternativas
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Tiene también otros muchos sinónimos [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()([Tt]ambién )?([Ss]e le conoce como|[Cc]onocida|([Hh]abitualmente )?[Dd]enominad[oa]|[Ss]e denomina)( también)? (?i:{re.escape(titulo)})( o (?i:{re.escape(titulo)}))?[.,]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Vv]éase también: [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Nombre del [^.]+\.))(?=([ \n]|$))', rf'#', content)
+
+    # Tipos/Clasificaciones (Punteros)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]+ del tipo de (?i:{re.escape(titulo)}) XYZ[^.]+\.))(?=([ \n]|$))', rf'#', content)
+
+    # Definiciones tautológicas de inicio
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ll]a (?i:{re.escape(titulo)})(,| es| designa) una (?i:{re.escape(titulo)}),))(?=([ \n]|$))', rf'#\n~{titulo}~ ', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()El (?i:{re.escape(titulo)}) (en [^. ]+) \(o (?i:{re.escape(titulo)})\)))(?=([ \n]|$))', re.sub(r'°(\d+)°', r'\\\1', rf'#\n~{titulo}~ °5°'), content)
+    return content
+
+def frases_vacias_aclaraciones_linguisticas(content):
+    # Etimología y Origen
+    content = sustraer(rf'( +|\n *|^ *)((()\(del inglés, [^.)]+\)[.,;]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Solo admisible como vocablo latino\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()En latin la palabra (?i:{re.escape(titulo)}) significa (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Fue originalmente voz coloquial, pero se usa ampliamente también en el registro especializado\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Recibió el nombre por [^.]+\.))(?=([ \n]|$))', rf'#', content)
+
+    # Siglas y Abreviaturas
+    content = sustraer(rf'( +|\n *|^ *)((()[^. ]+ corresponde a las siglas inglesas de [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'( +|\n *|^ *)((()\([^.,;:()]+, por sus siglas en inglés\),))(?=([ \n]|$))', rf'#,', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Suele abreviarse a (?i:{re.escape(titulo)}) (o, más frecuentemente, (?i:{re.escape(titulo)})|en sus formas compuestas:)))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()En forma siglada,[^.]*(?i:{re.escape(titulo)}) que (?i:{re.escape(titulo)});([^.]+\.)?))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Aa]breviatura (de (?i:{re.escape(titulo)})([^.;]+)?|ingles de [^.]+ \([^.)]*(?i:{re.escape(titulo)})\))\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()([Cc]on incidencia|[Ee]n ocasiones) abreviado a (?i:{re.escape(titulo)})(, (sustantivo [^. ]+|especialmente en [^. ]+))?[.,;]))(?=([ \n]|$))', rf'#', content)
+
+    # Ortografía, Pronunciación y Variantes
+    content = sustraer(rf'( +|\n *|^ *)((()como (?i:{re.escape(titulo)}) \(?(símbolo|o) ((?i:{re.escape(titulo)}))\)?,))(?=([ \n]|$))', rf'# {titulo},', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Sinónimo(s:( Coloquial:)?| de) (?i:{re.escape(titulo)})(, a)?\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Se escribe )?[Ee]n cursiva( y [^.]+)?(, por tratarse de un[^.,;]+)?[.;]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(La x basal |[^.]+, )?([Ss]e|La) pronuncia(ción)? ((original aproximada es )?/[^.]+|como (se escribe|s))\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(, +|; +|\. +|\n *|^ *)((()[Vv]ariante (en desuso|gráfica desprestigiada[^.,;]*)\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Se usa mucho la acentuación [^.,;]+|La acentuación (llana|etimológica)[^.;]+)[.;]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()La primera [^.,;]+ es mudo\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()es muy frecuente llamarlo simplemente (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+
+    # Gramática (Género, Número, Adjetivación)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*(Generalmente|Con incidencia|[Ss]e usa también) en plural( con el mismo significado[^.]*)?\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Como nombre propio, no suele ir precedido de artículo; si lo precisa, es masculino\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Casi no se usa en plural, que es dudoso en español\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*[Pp]lural invariable:? (\()?l[oa]s (?i:{re.escape(titulo)})(\))?[^.]*\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Como adjetivo, es invariable en cuanto a|(En propiedad [^.]+|[^.]*[Ss]e usa (también|mucho más)|(Es incorrecto |En )?[Ss]u uso( etimológico)?|Antiguamente se usó también|[^.]+ pero en español se usa solo) (con|de)) (género|identidad sexual) [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Su adjetivo es [^.,;]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Dado que se trata de un sustantivo abstracto [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Con frecuencia en plural, como nombre de grupo medicamentoso\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Es sustantivo masculino también cuando hace referencia a personas de sexo [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Es sustantivo formado de modo irregular[^.]+\.))(?=([ \n]|$))', rf'#', content)
+
+    # Normativa, Uso, Anglicismos y Recomendaciones
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Por influencia del inglés, )?[Ss]e usa (más|mucho) la forma (extendida|siglada inglesa) (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Se recomienda precaución con este término, que se usa con significados muy distintos\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Puede suscitar rechazo por considerarse ((extranjerismo|redundante|anglicismo|término impropio|erróneo|calco)[^.]*|híbrido etimológico(\. No obstante, su uso es abrumador)?)\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()La RANME (desaconseja (su|el) uso( de este término)? (por considerarlo [^.]+|de extranjerismos innecesarios)|es partidaria de sustituir los extranjerismos crudos por alguno de sus sinónimos en español o equivalentes castellanizados|(recomienda|aconseja) precaución con el uso [^.;]+)\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()La terminología es sumamente confusa y varía mucho de una escuela a otra;))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Es en propiedad más correcto, pero de uso minoritario\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Error frecuente por influencia del inglés [^.(]+( \([^.)]+\))?\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Es anglicismo incorrectamente formado|La transliteración (?i:{re.escape(titulo)}) es incorrecta) en español, pero de uso abrumador( por influencia del inglés)?\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Es|La) forma (castellanizada (es|del inglés): )?((?i:{re.escape(titulo)}), )?pero casi no se usa\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Se usa (más el anglicismo (?i:{re.escape(titulo)})|frecuentemente con anteposición del[^.,;]+)\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Localismo de uso restringido a algunas zonas de España; no se usa en América\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Ninguna de las traducciones propuestas ha logrado hasta ahora imponerse en la práctic[oa]\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()Las variantes que incorporan el [^.]+ suscitan rechazo entre [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*[Es]s (error|equivocación) frecuente el uso [^\n]+))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Se desaconseja )?[Ee]n los textos (modernos|actuales)(;|, se considera anglicismo\.)))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.,;]*[Ll]a RAE[^.]*\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()([^.]*[Ss]e usa (((mucho|muchísimo) )?más[^.;]*|de forma abrumadora|sobre todo|prácticamente de forma exclusiva) en [^.]+|Por semejanza de campo temático, existe riesgo importante de[^.]+|Las [^.;]+|[^.,]*[Ee]n (esta|todas sus)) acepci(ón|ones)[^.]*\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ll]a preferencia (por|entre) ((?i:{re.escape(titulo)})(, (?i:{re.escape(titulo)}))* [yo] [^.]+|una? (sinónimo|variante) u otr[oa]) depende( del contexto)?(( y)? de[^.]+)?[.;]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ss]u uso es abrumador\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(([Ll]as? (formas?|respectivas variantes con) [^.;]+ )?([Ee]s|[Ss]on|[Ss]e considera) (incorrectas?|impropias)|[Ss]e desaconsejan?)([^.]+)?\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*[Pp]uede verse (también ([^.,;]+, variante en desuso|(escrito )?en inglés [^.;]+|(?i:{re.escape(titulo)})( \(?[yo] (?i:{re.escape(titulo)})\)?)?(,? \(?variante [^.,;]+)?(, que es anglicismo sintáctico, o)?|[^.,;]*(, que se considera latinismo innecesario|con la grafía [^.,;]+))|en yuxtaposición [^.;]+:[^.;]+)[.;]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Tiene un marcado polimorfismo|[^.]+no son sinónimos estrictos[^.]+|[^.]+más restringido, referido al[^.]+|En propiedad[^.]+que es impropio y confuso|[^.]*[Ss]e deriva del griego[^.]+que significa[^.]+|Prácticamente no se usa en singular|Se usa muy poco en [^.]+)\.))(?=([ \n]|$))', rf'#', content)
+
+    # Bloque complejo (Linguistica - Desglose)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()((Se confunde a menudo con el:)[^.,;]+|(La yuxtaposición de sustantivos se considera anglicismo sintáctico)|(el artículo se consignan solo algunos de los muchos sinónimos arcaicos [^.]+|España, [^.]+)|(debe evitarse en el registro escrito)|(puede verse utilizado tanto en un sentido como en otro|también variantes asimismo en desuso)|(Localismo de uso en [^.]+)|(Término impreciso, [^.,;]+)|(se usó de forma preferente en la primera) acepción[^.]*)\.))(?=([ \n]|$))', rf'#', content)
+    return content
+
+def frases_vacias_aclaraciones_explicativas(content):
+    # Contexto y Alcance
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(?i:{re.escape(titulo)}) empleado en la (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.,;]*puede tener diversos significados en el campo de [^.,;]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ee]s un concepto amplio que puede aplicarse a diferentes contextos y situaciones médicas, [^.]+\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ee]n este contexto es subjetivo[^.]*\.))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()En el caso de la (?i:{re.escape(titulo)}), por ejemplo,))(?=([ \n]|$))', rf'#\n~{titulo}~ ', content)
+
+    # Información Médica/Científica Detallada
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Síntomas( y diagnóstico)? de la|[Dd]iagnóstico de la|[Tt]erapia( y manejo)? de la|Causas y tipos de) (?i:{re.escape(titulo)})[.:]))(?=([ \n]|$))', rf'#', content)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^\n]*[Cc]omo [^\n]*cualquier procedimiento [^\n]*(no está exenta de riesgos|hay riesgos asociados con su uso)[^\n]+))(?=([ \n]|$))', rf'#', content)
+
+    # Bloque complejo (Explicativa - Desglose)
+    content = sustraer(rf'(; +|\. +|\n *|^ *)((()(En ([^.,;]+, también juega un papel importante|el ámbito de la medicina, tiene múltiples aplicaciones y significados, dependiendo del contexto en el que se utilice)|Esta (amplia gama de usos reflej[oa] la diversidad y complejidad de la medicina como ciencia y práctico|es una definición general y, aunque es exacta, [^.]+)|Se usa (solo en contextos históricos|ampliamente también en el registro especializado)|Otro ámbito donde se emplea el término (?i:{re.escape(titulo)}) es [^.]+|No es habitual en [^.]+|[^.]+pero (no se usa|carece de validez en [^.]+)|(Presencia de una )?((?i:{re.escape(titulo)}) o)( (?i:{re.escape(titulo)}))?|Etiología y Factores de Riesgo|[Pp]rognóstico y profilaxis|A (pesar de sus numerosas ventajas, tiene algunas limitaciones|continuación, se abordan diversas aplicaciones y beneficios [^.]+))\.))(?=([ \n]|$))', rf'#', content)
+    return content
+
 def sustituir_siglas(content):
     content = re.sub(r'(?<![\w-])[Ss]istema[ -]RAA(?![\w-])', r'sistema renina-angiotensina-aldosterona', content)
     content = re.sub(r'(?<![\w-])Fc([αβßγελδζµκ])RI(?![\w-])', r'receptor Fc tipo 1 de inmunoglobulina \1', content)
@@ -1648,77 +1763,7 @@ def limpiar_fuentes():
             if not re.search(r'[Oo]bservaciones|[Ss]inónimos|[Dd]esuso|[Cc]oloquial|[Aa]breviatura', linea[4]):
                 content = re.sub(rf'{re.escape(linea[0])}{re.escape(linea[1])}(?=(\n|$))', rf'{linea[0]}', content, count=1)
         content = sustraer(rf'(\n *|^ *)((()[^.,;:]{{0,8}}\.))(?=(\n|$))', rf'#', content)
-        content = sustraer(rf'( +|\n *|^ *)((()\(del inglés, [^.)]+\)[.,;]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'( +|\n *|^ *)((()[^. ]+ corresponde a las siglas inglesas de [^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'( +|\n *|^ *)((()\([^.,;:()]+, por sus siglas en inglés\),))(?=([ \n]|$))', rf'#,', content)
-        content = sustraer(rf'( +|\n *|^ *)((()como (?i:{re.escape(titulo)}) \(?(símbolo|o) ((?i:{re.escape(titulo)}))\)?,))(?=([ \n]|$))', rf'# {titulo},', content)
-        content = sustraer(rf'( +|\n *|^ *)((()términos (?i:{re.escape(titulo)}) y (?i:{re.escape(titulo)}) son))(?=([ \n]|$))', rf'# {titulo} son', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Sinónimo(s:( Coloquial:)?| de) (?i:{re.escape(titulo)})(, a)?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(?i:{re.escape(titulo)})( y (?i:{re.escape(titulo)}))?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Por influencia del inglés, )?[Ss]e usa (más|mucho) la forma (extendida|siglada inglesa) (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*(Generalmente|Con incidencia|[Ss]e usa también) en plural( con el mismo significado[^.]*)?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Ver (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Se recomienda precaución con este término, que se usa con significados muy distintos\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Puede suscitar rechazo por considerarse ((extranjerismo|redundante|anglicismo|término impropio|erróneo|calco)[^.]*|híbrido etimológico(\. No obstante, su uso es abrumador)?)\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()La RANME (desaconseja (su|el) uso( de este término)? (por considerarlo [^.]+|de extranjerismos innecesarios)|es partidaria de sustituir los extranjerismos crudos por alguno de sus sinónimos en español o equivalentes castellanizados|(recomienda|aconseja) precaución con el uso [^.;]+)\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()La terminología es sumamente confusa y varía mucho de una escuela a otra;))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Es en propiedad más correcto, pero de uso minoritario\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Se escribe )?[Ee]n cursiva( y [^.]+)?(, por tratarse de un[^.,;]+)?[.;]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Término similar a (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Solo admisible como vocablo latino\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Coloquial|Desuso):? igual a (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Error frecuente por influencia del inglés [^.(]+( \([^.)]+\))?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Es anglicismo incorrectamente formado|La transliteración (?i:{re.escape(titulo)}) es incorrecta) en español, pero de uso abrumador( por influencia del inglés)?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Como nombre propio, no suele ir precedido de artículo; si lo precisa, es masculino\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Su nombre común es (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()De(l| l(a|os)) (?i:{re.escape(titulo)})s?( \(?o (?i:{re.escape(titulo)})\)?,?)? o relacionado con (él|ell[oa]s?)\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Es|La) forma (castellanizada (es|del inglés): )?((?i:{re.escape(titulo)}), )?pero casi no se usa\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Se usa (más el anglicismo (?i:{re.escape(titulo)})|frecuentemente con anteposición del[^.,;]+)\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Suele abreviarse a (?i:{re.escape(titulo)}) (o, más frecuentemente, (?i:{re.escape(titulo)})|en sus formas compuestas:)))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Localismo de uso restringido a algunas zonas de España; no se usa en América\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Ninguna de las traducciones propuestas ha logrado hasta ahora imponerse en la práctic[oa]\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()En forma siglada,[^.]*(?i:{re.escape(titulo)}) que (?i:{re.escape(titulo)});([^.]+\.)?))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Relativo a la (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Las variantes que incorporan el [^.]+ suscitan rechazo entre [^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(?i:{re.escape(titulo)}) empleado en la (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*[Es]s (error|equivocación) frecuente el uso [^\n]+))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Casi no se usa en plural, que es dudoso en español\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Se desaconseja )?[Ee]n los textos (modernos|actuales)(;|, se considera anglicismo\.)))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()El (?i:{re.escape(titulo)}) es el (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()En latin la palabra (?i:{re.escape(titulo)}) significa (?i:{re.escape(titulo)})\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Se usa con incidencia de manera laxo como si fuera sinónimo de: (?i:{re.escape(titulo)})(, la)?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()Tiene también otros muchos sinónimos [^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.,;]*puede tener diversos significados en el campo de [^.,;]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Se usa mucho la acentuación [^.,;]+|La acentuación (llana|etimológica)[^.;]+)[.;]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Tiene un marcado polimorfismo|[^.]+no son sinónimos estrictos[^.]+|Es sustantivo formado de modo irregular[^.]+|[^.]+más restringido, referido al[^.]+|En propiedad[^.]+que es impropio y confuso|[^.]*[Ss]e deriva del griego[^.]+que significa[^.]+|Prácticamente no se usa en singular|Se usa muy poco en [^.]+)\.))(?=([ \n]|$))', rf'#', content)
-        #Reemplazos con patron
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()((Se confunde a menudo con el:|Su adjetivo es) [^.,;]+|(Nombre del|[^.]* es muy frecuente llamarlo simplemente) (?i:{re.escape(titulo)})|[^.]+ debe evitarse en el registro escrito|La (primera [^.,;]+ es mudo|yuxtaposición de sustantivos se considera anglicismo sintáctico)|En ([^.,;]+, también juega un papel importante|el ámbito de la medicina, tiene múltiples aplicaciones y significados, dependiendo del contexto en el que se utilice|el artículo se consignan solo algunos de los muchos sinónimos arcaicos [^.]+|España, [^.]+)|Esta (amplia gama de usos reflej[oa] la diversidad y complejidad de la medicina como ciencia y práctico|es una definición general y, aunque es exacta, [^.]+)|Se usa (solo en contextos históricos|ampliamente también en el registro especializado)|[^.;]*Desuso:[^.;]+|Otro ámbito donde se emplea el término (?i:{re.escape(titulo)}) es [^.]+|Fue originalmente voz coloquial, pero se usa ampliamente también en el registro especializado|[^.]*[Pp]uede verse (utilizado tanto en un sentido como en otro|también variantes asimismo en desuso)|No es habitual en [^.]+|Dado que se trata de un sustantivo abstracto [^.]+|Localismo de uso en [^.]+|Con frecuencia en plural, como nombre de grupo medicamentoso|[^.]+pero (no se usa|carece de validez en [^.]+)|Generalmente por contraposición a:? [^.]+|Recibió el nombre por [^.]+|(Presencia de una )?((?i:{re.escape(titulo)}) o)( (?i:{re.escape(titulo)}))?|Etiología y Factores de Riesgo|[Pp]rognóstico y profilaxis|Término impreciso, [^.,;]+|A (pesar de sus numerosas ventajas, tiene algunas limitaciones|continuación, se abordan diversas aplicaciones y beneficios [^.]+)|Es sustantivo masculino también cuando hace referencia a personas de sexo [^.]+|[^.]+(en la arcosegundo|se usó de forma preferente en la primera) acepción[^.]*|Con frecuencia en plural)\.))(?=([ \n]|$))', rf'#', content)
-        #
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Como adjetivo, es invariable en cuanto a|(En propiedad [^.]+|[^.]*[Ss]e usa (también|mucho más)|(Es incorrecto |En )?[Ss]u uso( etimológico)?|Antiguamente se usó también|[^.]+ pero en español se usa solo) (con|de)) (género|identidad sexual) [^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(Síntomas( y diagnóstico)? de la|[Dd]iagnóstico de la|[Tt]erapia( y manejo)? de la|Causas y tipos de) (?i:{re.escape(titulo)})[.:]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^\n]*[Cc]omo [^\n]*cualquier procedimiento [^\n]*(no está exenta de riesgos|hay riesgos asociados con su uso)[^\n]+))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()En el caso de la (?i:{re.escape(titulo)}), por ejemplo,))(?=([ \n]|$))', rf'#\n~{titulo}~ ', content)
-        #
-        content = sustraer(rf'(, +|; +|\. +|\n *|^ *)((()[Vv]ariante (en desuso|gráfica desprestigiada[^.,;]*)\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Aa]breviatura (de (?i:{re.escape(titulo)})([^.;]+)?|ingles de [^.]+ \([^.)]*(?i:{re.escape(titulo)})\))\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ll]a preferencia (por|entre) ((?i:{re.escape(titulo)})(, (?i:{re.escape(titulo)}))* [yo] [^.]+|una? (sinónimo|variante) u otr[oa]) depende( del contexto)?(( y)? de[^.]+)?[.;]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(La x basal |[^.]+, )?([Ss]e|La) pronuncia(ción)? ((original aproximada es )?/[^.]+|como (se escribe|s))\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]+ del tipo de (?i:{re.escape(titulo)}) XYZ[^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ss]u uso es abrumador\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()([Cc]on incidencia|[Ee]n ocasiones) abreviado a (?i:{re.escape(titulo)})(, (sustantivo [^. ]+|especialmente en [^. ]+))?[.,;]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(([Ll]as? (formas?|respectivas variantes con) [^.;]+ )?([Ee]s|[Ss]on|[Ss]e considera) (incorrectas?|impropias)|[Ss]e desaconsejan?)([^.]+)?\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ee]s un concepto amplio que puede aplicarse a diferentes contextos y situaciones médicas, [^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ee]n este contexto es subjetivo[^.]*\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.,;]*[Ll]a RAE[^.]*\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()(que )?[Nn]o debe confundirse con[^.]+\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()([^.]*[Ss]e usa (((mucho|muchísimo) )?más[^.;]*|de forma abrumadora|sobre todo|prácticamente de forma exclusiva) en [^.]+|Por semejanza de campo temático, existe riesgo importante de[^.]+|Las [^.;]+|[^.,]*[Ee]n (esta|todas sus)) acepci(ón|ones)[^.]*\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*[Pp]lural invariable:? (\()?l[oa]s (?i:{re.escape(titulo)})(\))?[^.]*\.))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()([Tt]ambién )?([Ss]e le conoce como|[Cc]onocida|([Hh]abitualmente )?[Dd]enominad[oa]|[Ss]e denomina)( también)? (?i:{re.escape(titulo)})( o (?i:{re.escape(titulo)}))?[.,]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[^.]*[Pp]uede verse (también ([^.,;]+, variante en desuso|(escrito )?en inglés [^.;]+|(?i:{re.escape(titulo)})( \(?[yo] (?i:{re.escape(titulo)})\)?)?(,? \(?variante [^.,;]+)?(, que es anglicismo sintáctico, o)?|[^.,;]*(, que se considera latinismo innecesario|con la grafía [^.,;]+))|en yuxtaposición [^.;]+:[^.;]+)[.;]))(?=([ \n]|$))', rf'#', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Vv]éase también: [^.]+\.))(?=([ \n]|$))', rf'#', content)
-        #, flags=re.IGNORECASE
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()[Ll]a (?i:{re.escape(titulo)})(,| es| designa) una (?i:{re.escape(titulo)}),))(?=([ \n]|$))', rf'#\n~{titulo}~ ', content)
-        content = sustraer(rf'(; +|\. +|\n *|^ *)((()El (?i:{re.escape(titulo)}) (en [^. ]+) \(o (?i:{re.escape(titulo)})\)))(?=([ \n]|$))', re.sub(r'°(\d+)°', r'\\\1', rf'#\n~{titulo}~ °5°'), content)
+        |   
         content = sustraer(rf'(\n *|^ *)((()((?i:{re.escape(titulo)})( \(?(símbolo|o) (?i:{re.escape(titulo)})\)?)?,)(( (también|más|comúnmente))? (conocid|llamad|abreviad|denominad)[ao]s?( también)?( por sus siglas en inglés)?( como)? (?i:{re.escape(titulo)})( \(([^,.;:()]*?)\))?,)?))(?=([ \n]|$))', rf'#\n~{titulo}~ ', content)
         content = sustraer(rf'(\n *|^ *)((()((también|comúnmente) (conocid|llamad|abreviad|denominad)[ao]s? (como )?)?(?i:{re.escape(titulo)})( \(?(símbolo|o) ([^,.;:()]*?)\)?)?,?)( (se|es|pueden?|fue|solo|proviene|generalmente|permiten?|son|más conocidas|constituye|consiste|designa|en|está|sirve|corresponde|juega|no|tiene|comienza|nos|pasa|funciona|utiliza|desempeña|completa|lleva|debe|proporciona|suele|hace|impide|deriva|implica|requiere|refiere|investiga|representa|cumple|recibe|incluye|ha|provoca|reflej[ao]|liberan),?|,))(?=([ \n]|$))', re.sub(r'°(\d+)°', r'\\\1', rf'#\n~{titulo}~ °12°'), content)
         content = sustraer(rf'(\. +|\n *|^ *)((()([Aa]l|[Uu]na?|[Ee]st[aeo]s?|[Cc]ada|(([Aa]unque|[Aa]demás|[Dd]e hecho|[Aa] pesar de estos riesgos|[Ss]in embargo|[Gg]eneralmente|([Ee]s (importante|relevante)|[Cc]abe) destacar que|[Ss]i bien),? )?([Ee]l|[Ll][ao]s?)( término| palabra)?) (?i:{re.escape(titulo)}),( (también|más|comúnmente))? (conocid|llamad|abreviad|denominad)[ao]s?( también)?( por sus siglas en inglés)? como (?i:{re.escape(titulo)})( \(([^,.;:()]*?)\))?,))(?=([ \n]|$))', rf'#\n~{titulo}~ ', content)
